@@ -3,6 +3,17 @@ import { getStore } from "@netlify/blobs";
 const STORE_NAME = "bilyard-club";
 const STATE_KEY = "state";
 
+function getBlobStore() {
+  if (process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN) {
+    return getStore({
+      name: STORE_NAME,
+      siteID: process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_BLOBS_TOKEN,
+    });
+  }
+  return getStore(STORE_NAME);
+}
+
 function json(status, body) {
   return {
     statusCode: status,
@@ -29,18 +40,18 @@ export const handler = async (event) => {
     return json(200, { ok: true });
   }
 
-  const store = getStore(STORE_NAME);
-
-  let body = {};
   try {
-    body = event.body ? JSON.parse(event.body) : {};
-  } catch (e) {
-    body = {};
-  }
+    const store = getBlobStore();
 
-  const action = body.action;
+    let body = {};
+    try {
+      body = event.body ? JSON.parse(event.body) : {};
+    } catch (e) {
+      body = {};
+    }
 
-  try {
+    const action = body.action;
+
     if (action === "getState") {
       const state = await loadState(store);
       return json(200, { ok: true, tables: state.tables, sessions: state.sessions });
